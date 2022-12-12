@@ -26,9 +26,7 @@ describe("PatternSBT", function () {
       expect(await patternSBT.balanceOf(owner.address)).to.equal(1);
 
       await patternSBT.fetchNfts().then((nfts) => {
-        nfts.map((nft) => {
-          console.log(JSON.stringify(nft));
-        });
+        expect(JSON.stringify(nfts[0])).to.equal('["Ronald","https://abc","secret_desc","secret_key"]');
       });
     });
   });
@@ -37,6 +35,17 @@ describe("PatternSBT", function () {
     it("Should NOT transfer a token", async function () {
       const { patternSBT, owner, otherAccount } = await loadFixture(deployPatternSBTFixture);
       await patternSBT.mintLitSBT("Ronald", "https://abc", "secret_desc", "secret_key");
+
+      await expect(patternSBT.transferFrom(owner.address, otherAccount.address, 1)).to.be.revertedWith("This a Soulbound token. It cannot be transferred. It can only be burned by the token owner.");
+    });
+  });
+
+  describe("Burn", function () {
+    it("Should burn a token", async function () {
+      const { patternSBT, owner } = await loadFixture(deployPatternSBTFixture);
+      await patternSBT.mintLitSBT("Ronald", "https://abc", "secret_desc", "secret_key");
+      await patternSBT.burn(1);
+      expect(await patternSBT.balanceOf(owner.address)).to.equal(0);
     });
   });
 });
