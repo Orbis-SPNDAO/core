@@ -103,3 +103,14 @@ gas-report.txt
 contracts/test/fuzzing/crytic-export
 
 .env
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+
+# Hardhat files
+cache
+artifacts
+
