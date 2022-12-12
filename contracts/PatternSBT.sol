@@ -1,93 +1,72 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SpendSBT is
-    ERC721,
-    ERC721Enumerable,
-    ERC721URIStorage,
-    ERC721Burnable,
-    Ownable
-{
+contract PatternSBT is ERC721URIStorage, ReentrancyGuard, Ownable {
+    using Strings for uint256;
     using Counters for Counters.Counter;
+    Counters.Counter private _tokenIds;
 
-    Counters.Counter private _tokenIdCounter;
+    constructor() ERC721 ("PatternSBT", "DATA"){}
 
-    mapping(address => uint256[]) public ownerToTokenIds;
-    
-    string[] public cidList;
-    
-    constructor() ERC721("Spend DAO", "SPN") {
-        safeMint(msg.sender, '');
+    mapping(uint256 => nft) private tokenIdToNft;
+
+    struct nft {
+        string name;
+        string imageUrl;
+        string encryptedDescription;
+        string encryptedSymmetricKey;
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "https://patterndao.mypinata.cloud/ipfs/";
-        
+    function getTokenURI(
+        string memory name,
+        string memory imageUrl,
+        string memory encryptedDescription,
+        string memory encryptedSymmetricKey
+    ) private pure returns (string memory) {
+        bytes memory dataURI = abi.encodePacked(
+            '{',
+                '"name": "', name, '",',
+                '"image": "', imageUrl, '",',
+                '"description": "', encryptedDescription, '",',
+                '"symmetricKey": "', encryptedSymmetricKey, '"',
+            '}'
+        );
+        return string(
+            abi.encodePacked(
+                "data:application/json;base64,",
+                Base64.encode(dataURI)
+            )
+        );
     }
 
-    function safeMint(address to, string memory uri) public {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-
-        _mint(to, tokenId); // safeMint is not currently supported by on FVM
-        _setTokenURI(tokenId, uri);
-
-        ownerToTokenIds[to].push(tokenId);
-        cidList.push(uri);
+    function mintLitSBT(
+        string memory name,
+        string memory imageUrl,
+        string memory encryptedDescription,
+        string memory encryptedSymmetricKey
+    ) public nonReentrant {
+        _tokenIds.increment();
+        uint256 newNftTokenId = _tokenIds.current();
+        _safeMint(msg.sender, newNftTokenId);
+        _setTokenURI(newNftTokenId, getTokenURI(name, imageUrl, encryptedDescription, encryptedSymmetricKey));
+        tokenIdToNft[newNftTokenId] = nft(name, imageUrl, encryptedDescription, encryptedSymmetricKey);
     }
 
-    function totalSupply() public view override returns (uint256) {
-        return _tokenIdCounter.current();
-    }
+    // Fetch all the NFTs to display
+    function fetchNfts() public view returns (nft[] memory) {        
+        nft[] memory nfts = new nft[](_tokenIds.current());
+        for (uint256 idx = 1; idx < _tokenIds.current() + 1; idx++) {
+            nft memory currNft = tokenIdToNft[idx];
+            nfts[idx - 1] = currNft;
+        }
 
-    function userBurn(uint id) public {
-        require(ownerOf(id) == msg.sender, "You do not own this token");
-        _burn(id);
-    }
-
-    // The following functions are overrides required by Solidity.
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 /*tokenId*/,
-        uint256 /*batchSize*/
-    ) internal pure override(ERC721, ERC721Enumerable) {
-        require(
-            from == address(0) || to == address(0),
-            "This a Soulbound token. It cannot be transferred. It can only be burned by the token owner."
-        );        
-    }
-
-    function _burn(uint256 tokenId)
-        internal
-        override(ERC721, ERC721URIStorage)
-    {        
-        // delete ownerToTokenIds[msg.sender][tokenId];
-        super._burn(tokenId);
-    }
-
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        return super.tokenURI(tokenId);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
+        return nfts;
     }
 }
