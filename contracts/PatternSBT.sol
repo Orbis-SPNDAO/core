@@ -21,21 +21,21 @@ contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownabl
     struct nft {
         string name;
         string imageUrl;
-        string encryptedDescription;
+        string encryptedData;
         string encryptedSymmetricKey;
     }    
 
-    function getTokenURI(string memory name, string memory imageUrl, string memory encryptedDescription, string memory encryptedSymmetricKey) private pure returns (string memory) {
-        bytes memory dataURI = abi.encodePacked("{", '"name": "', name, '",', '"image": "', imageUrl, '",', '"description": "', encryptedDescription, '",', '"symmetricKey": "', encryptedSymmetricKey, '"', "}");
+    function getTokenURI(string memory name, string memory imageUrl, string memory encryptedData, string memory encryptedSymmetricKey) private pure returns (string memory) {
+        bytes memory dataURI = abi.encodePacked("{", '"name": "', name, '",', '"image": "', imageUrl, '",', '"description": "', encryptedData, '",', '"symmetricKey": "', encryptedSymmetricKey, '"', "}");
         return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
     }
 
-    function mintLitSBT(string memory name, string memory imageUrl, string memory encryptedDescription, string memory encryptedSymmetricKey) public nonReentrant {
+    function mintLitSBT(string memory name, string memory imageUrl, string memory encryptedData, string memory encryptedSymmetricKey) public nonReentrant {
         _tokenIds.increment();
         uint256 newNftTokenId = _tokenIds.current();
         _safeMint(msg.sender, newNftTokenId);
-        _setTokenURI(newNftTokenId, getTokenURI(name, imageUrl, encryptedDescription, encryptedSymmetricKey));
-        tokenIdToNft[newNftTokenId] = nft(name, imageUrl, encryptedDescription, encryptedSymmetricKey);
+        _setTokenURI(newNftTokenId, getTokenURI(name, imageUrl, encryptedData, encryptedSymmetricKey));
+        tokenIdToNft[newNftTokenId] = nft(name, imageUrl, encryptedData, encryptedSymmetricKey);
     }
 
     // Fetch all the NFTs to display
