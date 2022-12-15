@@ -64,9 +64,9 @@ contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownabl
     function _burn(uint256 tokenId)
         internal
         override(ERC721, ERC721URIStorage)
-    {        
-        // delete ownerToTokenIds[msg.sender][tokenId];
+    {                
         super._burn(tokenId);
+        delete tokenIdToNft[tokenId];
     }
 
     function tokenURI(uint256 tokenId)
