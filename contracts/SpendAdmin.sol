@@ -44,7 +44,7 @@ contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Own
         address to,
         uint256 /*tokenId*/,
         uint256 /*batchSize*/
-    ) internal whenNotPaused override(ERC721, ERC721Enumerable) {
+    ) internal whenNotPaused view override(ERC721, ERC721Enumerable) {
         require(
             from == address(0) || to == address(0),
             "This a Soulbound token. It cannot be transferred. It can only be burned by the token owner."
