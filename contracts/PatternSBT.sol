@@ -17,6 +17,7 @@ contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownabl
     constructor() ERC721("PatternSBT", "DATA") {}
 
     mapping(uint256 => nft) private tokenIdToNft;
+    mapping(address => uint256) ownerToTokenId;
 
     struct nft {
         string name;
@@ -36,6 +37,7 @@ contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownabl
         _safeMint(msg.sender, newNftTokenId);
         _setTokenURI(newNftTokenId, getTokenURI(name, imageUrl, encryptedData, encryptedSymmetricKey));
         tokenIdToNft[newNftTokenId] = nft(name, imageUrl, encryptedData, encryptedSymmetricKey);
+        ownerToTokenId[msg.sender] = newNftTokenId;
     }
 
     // Fetch all the NFTs to display
@@ -49,7 +51,7 @@ contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownabl
         return nfts;
     }
 
-  function _beforeTokenTransfer(
+    function _beforeTokenTransfer(
         address from,
         address to,
         uint256 /*tokenId*/,
@@ -59,6 +61,12 @@ contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownabl
             from == address(0) || to == address(0),
             "This a Soulbound token. It cannot be transferred. It can only be burned by the token owner."
         );        
+    }
+
+    function userBurn(uint256 tokenId) public {
+        require (ownerOf(tokenId) == msg.sender, 'You do not own this SBT');
+        _burn(tokenId);
+        delete ownerToTokenId[msg.sender];
     }
 
     function _burn(uint256 tokenId)
