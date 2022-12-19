@@ -9,12 +9,12 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
-contract PatternSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable {
+contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable {
     using Strings for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    constructor() ERC721("PatternSBT", "DATA") {}
+    constructor() ERC721("SpendSBT", "DATA") {}
 
     mapping(uint256 => nft) private tokenIdToNft;
     mapping(address => uint256) ownerToTokenId;
