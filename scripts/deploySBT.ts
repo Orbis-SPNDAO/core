@@ -1,12 +1,19 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const PatternSBT = await ethers.getContractFactory("PatternSBT");
-  const patternSBT = await PatternSBT.deploy();
+  const SpendSBT = await ethers.getContractFactory("SpendSBT");
+  const spendSBT = await SpendSBT.deploy();
 
-  await patternSBT.deployed();
+  await spendSBT.deployed();
 
-  console.log(`Deployed to ${patternSBT.address}`);
+  console.log(`Deployed SpendSBT to ${spendSBT.address}`);
+
+  const AdminSBT = await ethers.getContractFactory("SpendAdmin");
+  const adminSBT = await AdminSBT.deploy();
+
+  await adminSBT.deployed();
+
+  console.log(`Deployed AdminSBT to ${adminSBT.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
