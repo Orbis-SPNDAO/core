@@ -14,6 +14,20 @@ async function main() {
   await adminSBT.deployed();
 
   console.log(`Deployed AdminSBT to ${adminSBT.address}`);
+
+  // mint pre-approved admin NFTs
+  const preApprovedAdminAddressList = process.env.PREAPPROVED_ADMIN_LIST?.split(",");
+  if (preApprovedAdminAddressList) {
+    for (const address of preApprovedAdminAddressList) {
+      await adminSBT.safeMint(address, "");
+      console.log(`Admin SBT minted for address: ${address}`);
+      await new Promise(function (resolve) {
+        setTimeout(function () {
+          resolve(true);
+        }, 5000);
+      });
+    }
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
