@@ -17,12 +17,13 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
     constructor() ERC721("SpendSBT", "DATA") {}
 
     mapping(uint256 => nft) private tokenIdToNft;
-    mapping(address => uint256) public ownerToTokenId;
+    mapping(address => uint256) public ownerToTokenId;    
+    mapping (uint => address) tokenIdToOwner;
 
-    struct nft {
+    struct nft {        
         string imageUrl;
         string encryptedData;
-        string encryptedSymmetricKey;
+        string encryptedSymmetricKey;        
     }
 
     function getTokenURI(
@@ -35,7 +36,7 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
         return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
     }
 
-    function mintLitSBT(
+    function mintLitSBT(                
         string memory imageUrl,
         string memory encryptedData,
         string memory encryptedSymmetricKey
@@ -46,6 +47,7 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
         _setTokenURI(newNftTokenId, getTokenURI(newNftTokenId, imageUrl, encryptedData, encryptedSymmetricKey));
         tokenIdToNft[newNftTokenId] = nft(imageUrl, encryptedData, encryptedSymmetricKey);
         ownerToTokenId[msg.sender] = newNftTokenId;
+        tokenIdToOwner[newNftTokenId] = msg.sender;
     }
 
     // Fetch all the NFTs to display
@@ -55,8 +57,16 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
             nft memory currNft = tokenIdToNft[idx];
             nfts[idx - 1] = currNft;
         }
-
         return nfts;
+    }
+
+    function fetchHolders() public view returns (address[] memory) {
+        address[] memory holders = new address[](_tokenIds.current());
+        for (uint256 idx = 1; idx < _tokenIds.current() + 1; idx++) {
+            address currHolder = tokenIdToOwner[idx];
+            holders[idx - 1] = currHolder;
+        }
+        return holders;
     }
 
     function _beforeTokenTransfer(
@@ -70,13 +80,14 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
 
     function userBurn(uint256 tokenId) public {
         require(ownerOf(tokenId) == msg.sender, "You do not own this SBT");
-        _burn(tokenId);
-        delete ownerToTokenId[msg.sender];
+        _burn(tokenId);                        
     }
 
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
         delete tokenIdToNft[tokenId];
+        delete tokenIdToOwner[tokenId];
+        delete ownerToTokenId[msg.sender];
     }
 
     function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
