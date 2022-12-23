@@ -11,12 +11,19 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Ownable, ERC721Burnable {
     using Counters for Counters.Counter;
+    address public spendSbtAddress;
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor() ERC721("SpendAdmin", "SPTA") {
+    event KeyAdded(uint256 tokenId, string key);
+
+
+    constructor(address spendSbtDeployedAddress) ERC721("SpendAdmin", "SPTA") {
         safeMint(msg.sender, "");
+        spendSbtAddress = spendSbtDeployedAddress;
     }
+
+    mapping (uint => string) private endUserTokenIdToEncryptionKey;
 
     function _baseURI() internal pure override returns (string memory) {
         return "https://ccdao.mypinata.cloud/ipfs/";
@@ -28,6 +35,12 @@ contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Own
 
     function unpause() public onlyOwner {
         _unpause();
+    }
+
+    function addEncryptionKey(uint256 tokenId, string memory encryptionKey) public {
+        require(msg.sender == spendSbtAddress, 'Protected function only invokable by sibling contract.');
+        endUserTokenIdToEncryptionKey[tokenId] = encryptionKey;
+        emit KeyAdded(tokenId, encryptionKey);
     }
 
     function safeMint(address to, string memory uri) public onlyOwner {
