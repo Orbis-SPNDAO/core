@@ -8,11 +8,13 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "./SpendAdmin.sol";
 
 contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable {
     using Strings for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
+    SpendAdmin public spendAdminContract;
 
     constructor() ERC721("SpendSBT", "DATA") {}
 
@@ -22,32 +24,35 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
 
     struct nft {        
         string imageUrl;
-        string encryptedData;
-        string encryptedSymmetricKey;        
+        string encryptedCid;
+    }
+
+    function setAdminContract(address adminContractAddress) onlyOwner public {
+        spendAdminContract = SpendAdmin(adminContractAddress);
     }
 
     function getTokenURI(
         uint256 tokenId,
         string memory imageUrl,
-        string memory encryptedData,
-        string memory encryptedSymmetricKey
+        string memory encryptedCid
     ) private pure returns (string memory) {
-        bytes memory dataURI = abi.encodePacked("{", '"name": "SPN DAO #', tokenId.toString(), '",', '"image": "', imageUrl, '",', '"description": "', encryptedData, '",', '"symmetricKey": "', encryptedSymmetricKey, '"', "}");
+        bytes memory dataURI = abi.encodePacked("{", '"name": "SPN DAO #', tokenId.toString(), '",', '"image": "', imageUrl, '",', '"description": "', encryptedCid, '"}');
         return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
     }
 
     function mintLitSBT(                
         string memory imageUrl,
-        string memory encryptedData,
-        string memory encryptedSymmetricKey
+        string memory encryptedCid,
+        string memory symmetricKey
     ) public nonReentrant {
         _tokenIds.increment();
         uint256 newNftTokenId = _tokenIds.current();
         _safeMint(msg.sender, newNftTokenId);
-        _setTokenURI(newNftTokenId, getTokenURI(newNftTokenId, imageUrl, encryptedData, encryptedSymmetricKey));
-        tokenIdToNft[newNftTokenId] = nft(imageUrl, encryptedData, encryptedSymmetricKey);
+        _setTokenURI(newNftTokenId, getTokenURI(newNftTokenId, imageUrl, encryptedCid));
+        tokenIdToNft[newNftTokenId] = nft(imageUrl, encryptedCid);
         ownerToTokenId[msg.sender] = newNftTokenId;
         tokenIdToOwner[newNftTokenId] = msg.sender;
+        spendAdminContract.addEncryptionKey(newNftTokenId, symmetricKey);
     }
 
     // Fetch all the NFTs to display
