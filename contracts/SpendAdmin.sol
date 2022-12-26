@@ -8,19 +8,27 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "./SpendSBT.sol";
 
 contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Ownable, ERC721Burnable {
     using Counters for Counters.Counter;
-    address public spendSbtAddress;
+    SpendSBT public spendSbtContract;
+    uint256 public decryptRate = 0.01 ether;
+
 
     Counters.Counter private _tokenIdCounter;
 
     event KeyAdded(uint256 tokenId, string key);
+    event SendingKey(uint256 tokenId, string key);
+
+    struct DecryptionKey {
+        string decryptionKey;
+    }
 
 
-    constructor(address spendSbtDeployedAddress) ERC721("SpendAdmin", "SPTA") {
+    constructor(address spendSbtAddress) ERC721("SpendAdmin", "SPTA") {
         safeMint(msg.sender, "");
-        spendSbtAddress = spendSbtDeployedAddress;
+        spendSbtContract = SpendSBT(spendSbtAddress);
     }
 
     mapping (uint => string) private endUserTokenIdToEncryptionKey;
@@ -38,7 +46,7 @@ contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Own
     }
 
     function addEncryptionKey(uint256 tokenId, string memory encryptionKey) public {
-        require(msg.sender == spendSbtAddress, 'Protected function only invokable by sibling contract.');
+        require(msg.sender == address(spendSbtContract), 'Protected function only invokable by sibling contract.');
         endUserTokenIdToEncryptionKey[tokenId] = encryptionKey;
         emit KeyAdded(tokenId, encryptionKey);
     }
@@ -50,6 +58,24 @@ contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Own
         _mint(to, tokenId);
         _setTokenURI(tokenId, uri);
     }
+
+    function decrypt(uint256[] memory tokenIds) public payable returns (DecryptionKey[] memory) {
+        require(balanceOf(msg.sender) > 0, 'Only admins can decrypt');
+        require(msg.value > decryptRate * tokenIds.length, 'Not enough funds in treasury.');
+        DecryptionKey[] memory decryptionKeys = new DecryptionKey[](tokenIds.length);
+        for (uint256 idx = 0; idx < tokenIds.length; idx++) {
+            uint256 tokenId = tokenIds[idx];
+            address tokenOwner = spendSbtContract.fetchHolder(tokenId);
+            payable(tokenOwner).transfer(decryptRate);
+            string memory decryptionKey = endUserTokenIdToEncryptionKey[tokenId];
+            decryptionKeys[idx].decryptionKey = decryptionKey;
+            emit SendingKey(tokenId,    decryptionKey);
+        }
+        spendSbtContract.decrypt(tokenIds);
+        return decryptionKeys;
+    }
+
+    function deposit() public payable {}
 
     // The following functions are overrides required by Solidity.
     function _beforeTokenTransfer(
