@@ -22,9 +22,10 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
     mapping(address => uint256) public ownerToTokenId;    
     mapping (uint => address) tokenIdToOwner;
 
-    struct nft {        
+    struct nft {     
         string imageUrl;
         string encryptedCid;
+        bool isDecrypted;
     }
 
     function setAdminContract(address adminContractAddress) onlyOwner public {
@@ -33,10 +34,9 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
 
     function getTokenURI(
         uint256 tokenId,
-        string memory imageUrl,
-        string memory encryptedCid
+        string memory imageUrl
     ) private pure returns (string memory) {
-        bytes memory dataURI = abi.encodePacked("{", '"name": "SPN DAO #', tokenId.toString(), '",', '"image": "', imageUrl, '",', '"description": "', encryptedCid, '"}');
+        bytes memory dataURI = abi.encodePacked("{", '"name": "SPN DAO #', tokenId.toString(), '",', '"image": "', imageUrl, '",', '"description": "A soul-bound token issued by SPN DAO allowing you to take control of and monetize your data."}');
         return string(abi.encodePacked("data:application/json;base64,", Base64.encode(dataURI)));
     }
 
@@ -48,11 +48,22 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
         _tokenIds.increment();
         uint256 newNftTokenId = _tokenIds.current();
         _safeMint(msg.sender, newNftTokenId);
-        _setTokenURI(newNftTokenId, getTokenURI(newNftTokenId, imageUrl, encryptedCid));
-        tokenIdToNft[newNftTokenId] = nft(imageUrl, encryptedCid);
+        _setTokenURI(newNftTokenId, getTokenURI(newNftTokenId, imageUrl));
+        tokenIdToNft[newNftTokenId] = nft(imageUrl, encryptedCid, false);
         ownerToTokenId[msg.sender] = newNftTokenId;
         tokenIdToOwner[newNftTokenId] = msg.sender;
         spendAdminContract.addEncryptionKey(newNftTokenId, symmetricKey);
+    }
+
+    function decrypt(uint256[] memory tokenIds) public {
+        require(msg.sender == address(spendAdminContract), 'Only invokable by sibling contract.');
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            nft memory currNft = tokenIdToNft[tokenIds[i]];
+            if (!currNft.isDecrypted && bytes(currNft.encryptedCid).length != 0) {
+                currNft.isDecrypted = true;
+                tokenIdToNft[tokenIds[i]] = currNft;
+            }
+        }
     }
 
     // Fetch all the NFTs to display
@@ -72,6 +83,11 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
             holders[idx - 1] = currHolder;
         }
         return holders;
+    }
+
+    function fetchHolder(uint256 tokenId) public view returns (address) {
+        require(msg.sender == address(spendAdminContract), 'Only invokable by sibling contract.');
+        return tokenIdToOwner[tokenId];
     }
 
     function _beforeTokenTransfer(
