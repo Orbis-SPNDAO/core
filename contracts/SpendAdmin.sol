@@ -69,7 +69,7 @@ contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Own
             payable(tokenOwner).transfer(decryptRate);
             string memory decryptionKey = endUserTokenIdToEncryptionKey[tokenId];
             decryptionKeys[idx].decryptionKey = decryptionKey;
-            emit SendingKey(tokenId,    decryptionKey);
+            emit SendingKey(tokenId, decryptionKey);
         }
         spendSbtContract.decrypt(tokenIds);
         return decryptionKeys;

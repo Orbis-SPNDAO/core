@@ -57,11 +57,11 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
 
     function decrypt(uint256[] memory tokenIds) public {
         require(msg.sender == address(spendAdminContract), 'Only invokable by sibling contract.');
-        for (uint256 tokenId = 0; tokenId < tokenIds.length; tokenId++) {
-            nft memory currNft = tokenIdToNft[tokenId];
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            nft memory currNft = tokenIdToNft[tokenIds[i]];
             if (!currNft.isDecrypted && bytes(currNft.encryptedCid).length != 0) {
                 currNft.isDecrypted = true;
-                tokenIdToNft[tokenId] = currNft;
+                tokenIdToNft[tokenIds[i]] = currNft;
             }
         }
     }
