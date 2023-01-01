@@ -14,6 +14,7 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
     using Strings for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
+    Counters.Counter private _proposalIdCounter;
     SpendAdmin public spendAdminContract;
 
     constructor() ERC721("SpendSBT", "DATA") {}
@@ -21,11 +22,18 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
     mapping(uint256 => nft) private tokenIdToNft;
     mapping(address => uint256) public ownerToTokenId;    
     mapping (uint => address) tokenIdToOwner;
+    mapping(uint256 => proposal) public activeProposals;
 
     struct nft {     
         string imageUrl;
         string encryptedCid;
         bool isDecrypted;
+    }
+
+    struct proposal {
+        uint256 index;
+        string proposalId;
+        bool isActive;
     }
 
     function setAdminContract(address adminContractAddress) onlyOwner public {
@@ -64,6 +72,28 @@ contract SpendSBT is ERC721URIStorage, ERC721Burnable, ReentrancyGuard, Ownable 
                 tokenIdToNft[tokenIds[i]] = currNft;
             }
         }
+    }
+
+    function fetchProposalIds() public view returns (proposal[] memory) {
+        proposal[] memory proposalIds = new proposal[](_proposalIdCounter.current());
+        for (uint256 idx = 0; idx < _proposalIdCounter.current(); idx++) {
+            if (activeProposals[idx].isActive) {
+                proposalIds[idx] = activeProposals[idx];
+            }
+        }
+        return proposalIds;
+    }
+
+    function addProposal(string memory newProposalId) public {
+        require(msg.sender == address(spendAdminContract), 'Only invokable by sibling contract.');
+        uint256 index = _proposalIdCounter.current();
+        _proposalIdCounter.increment();
+        activeProposals[index] = proposal(index, newProposalId, true);
+    }
+
+    function deleteProposal(uint256 index) public {
+        require(msg.sender == address(spendAdminContract), 'Only invokable by sibling contract.');
+        activeProposals[index].isActive = false;
     }
 
     // Fetch all the NFTs to display

@@ -75,6 +75,16 @@ contract SpendAdmin is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Own
         return decryptionKeys;
     }
 
+    function addProposal(string memory proposalId) public {
+        require(balanceOf(msg.sender) > 0, 'Only admins can add proposals');
+        spendSbtContract.addProposal(proposalId);
+    }
+
+    function deleteProposal(uint256 index) public {
+        require(balanceOf(msg.sender) > 0, 'Only admins can delete proposals');
+        spendSbtContract.deleteProposal(index);
+    }
+
     function deposit() public payable {}
 
     // The following functions are overrides required by Solidity.
